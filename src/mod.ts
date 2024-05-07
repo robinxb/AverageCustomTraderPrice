@@ -20,8 +20,7 @@ class Mod implements IPostDBLoadMod
 {
     private tables: IDatabaseTables;
     logger: ILogger;
-    lotusModInstalled: boolean;
-
+    
     private applyTradersChange() {
         for (let i in modConfig['traders']) {
             const name = modConfig['traders'][i]

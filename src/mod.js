@@ -18,7 +18,6 @@ class Mod {
         for (let i in modConfig['traders']) {
             const name = modConfig['traders'][i];
             if (this.tables.traders[name]) {
-                this.logger.info("AAAA" + name);
                 for (let ll in this.tables.traders[name].base.loyaltyLevels) {
                     // get avg buy price for each traders at this LL
                     let accumCoef = 0;

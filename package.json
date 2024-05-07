@@ -1,6 +1,6 @@
 {
-    "name": "Average-Lotus-Price",
-    "version": "0.0.1",
+    "name": "Average-Custom-Traders-Price",
+    "version": "0.0.2",
     "main": "src/mod.js",
     "license": "MIT",
     "author": "Robin",

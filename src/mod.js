@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const modConfig = require("../config/config.json");
 const traderIds = [
     "54cb50c76803fa8b248b4571",
     "54cb57776803fa99248b456e",
@@ -10,44 +11,31 @@ const traderIds = [
     "5c0647fdd443bc2504c2d371"
 ];
 class Mod {
-    container;
     tables;
     logger;
     lotusModInstalled;
-    preAkiLoad(container) {
-        this.logger = container.resolve("WinstonLogger");
-        const preAkiModLoader = container.resolve("PreAkiModLoader");
-        const activeMods = preAkiModLoader.getImportedModDetails();
-        for (const modname in activeMods) {
-            if (modname.includes("Lotus") && activeMods[modname].author == "Lunnayaluna") {
-                this.lotusModInstalled = true;
-                break;
+    applyTradersChange() {
+        for (let i in modConfig['traders']) {
+            const name = modConfig['traders'][i];
+            if (this.tables.traders[name]) {
+                this.logger.info("AAAA" + name);
+                for (let ll in this.tables.traders[name].base.loyaltyLevels) {
+                    // get avg buy price for each traders at this LL
+                    let accumCoef = 0;
+                    for (let i in traderIds) {
+                        const id = traderIds[i];
+                        accumCoef += this.tables.traders[id].base.loyaltyLevels[ll].buy_price_coef;
+                    }
+                    const avg = Math.round(accumCoef / traderIds.length);
+                    this.tables.traders[name].base.loyaltyLevels[ll].buy_price_coef = avg;
+                }
             }
-        }
-        if (!this.lotusModInstalled) {
-            this.logger.error("Cannot find lotus mod! This mod will not change anything!");
-        }
-    }
-    applyLotusChange() {
-        for (let ll in this.tables.traders['lotus'].base.loyaltyLevels) {
-            // get avg buy price for each traders at this LL
-            let accumCoef = 0;
-            for (let i in traderIds) {
-                const id = traderIds[i];
-                accumCoef += this.tables.traders[id].base.loyaltyLevels[ll].buy_price_coef;
-            }
-            const avg = Math.round(accumCoef / traderIds.length);
-            this.tables.traders['lotus'].base.loyaltyLevels[ll].buy_price_coef = avg;
-            this.logger.info(`Set avg BPC to ${avg}`);
         }
     }
     postDBLoad(container) {
-        if (!this.lotusModInstalled) {
-            return;
-        }
-        this.container = container;
+        this.logger = container.resolve("WinstonLogger");
         this.tables = container.resolve("DatabaseServer").getTables();
-        this.applyLotusChange();
+        this.applyTradersChange();
     }
 }
 module.exports = { mod: new Mod() };

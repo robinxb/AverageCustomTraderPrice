@@ -4,8 +4,7 @@ import type { ILogger } from "@spt-aki/models/spt/utils/ILogger";
 import { DatabaseServer } from "@spt-aki/servers/DatabaseServer";
 import type { IPostDBLoadMod } from "@spt-aki/models/external/IPostDBLoadMod";
 import type { IDatabaseTables } from "@spt-aki/models/spt/server/IDatabaseTables";
-import type { IPreAkiLoadMod } from "@spt-aki/models/external/IPreAkiLoadMod";
-import { PreAkiModLoader } from "@spt-aki/loaders/PreAkiModLoader";
+const modConfig = require("../config/config.json");
 
 const traderIds = [
     "54cb50c76803fa8b248b4571",
@@ -17,51 +16,35 @@ const traderIds = [
     "5c0647fdd443bc2504c2d371"
 ]
 
-class Mod implements IPostDBLoadMod, IPreAkiLoadMod
+class Mod implements IPostDBLoadMod
 {
-    private container: DependencyContainer;
     private tables: IDatabaseTables;
     logger: ILogger;
     lotusModInstalled: boolean;
 
-    preAkiLoad(container: DependencyContainer): void {
-        this.logger = container.resolve<ILogger>("WinstonLogger");
-        const preAkiModLoader = container.resolve<PreAkiModLoader>("PreAkiModLoader");
-        const activeMods = preAkiModLoader.getImportedModDetails();
-        for (const modname in activeMods) {
-            if (modname.includes("Lotus") && activeMods[modname].author == "Lunnayaluna") {
-                this.lotusModInstalled = true;
-                break;
+    private applyTradersChange() {
+        for (let i in modConfig['traders']) {
+            const name = modConfig['traders'][i]
+            if (this.tables.traders[name]) {
+                for (let ll in this.tables.traders[name].base.loyaltyLevels){
+                    // get avg buy price for each traders at this LL
+                    let accumCoef = 0
+                    for (let i in traderIds) {
+                        const id = traderIds[i]
+                        accumCoef += this.tables.traders[id].base.loyaltyLevels[ll].buy_price_coef
+                    }
+                    const avg = Math.round(accumCoef / traderIds.length)
+                    this.tables.traders[name].base.loyaltyLevels[ll].buy_price_coef = avg
+                }
             }
         }
-        if (!this.lotusModInstalled) {
-            this.logger.error("Cannot find lotus mod! This mod will not change anything!")
-        }
-    }
-
-    private applyLotusChange() {
-        for (let ll in this.tables.traders['lotus'].base.loyaltyLevels){
-            // get avg buy price for each traders at this LL
-            let accumCoef = 0
-            for (let i in traderIds) {
-                const id = traderIds[i]
-                accumCoef += this.tables.traders[id].base.loyaltyLevels[ll].buy_price_coef
-            }
-            const avg = Math.round(accumCoef / traderIds.length)
-            this.tables.traders['lotus'].base.loyaltyLevels[ll].buy_price_coef = avg
-        }
-        
-        
     }
 
     postDBLoad(container: DependencyContainer): void
     {
-        if (!this.lotusModInstalled) {
-            return;
-        }
-        this.container = container;
+        this.logger = container.resolve("WinstonLogger");
         this.tables = container.resolve<DatabaseServer>("DatabaseServer").getTables();
-        this.applyLotusChange()
+        this.applyTradersChange()
     }
 }
 
